@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}Project Status Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold text-dark"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Project Health Overview</h3>
+    <a href="{{ url_for('export_projects_csv') }}" class="btn btn-success rounded-pill px-4 shadow-sm">
+        <i class="bi bi-file-earmark-spreadsheet me-2"></i> Export Project Data
+    </a>
+</div>
+    <div class="row">
+        {% for project in project_data %}
+        <div class="col-md-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="fw-bold text-dark mb-0">{{ project.title }}</h5>
+                        <span class="badge {% if (project.progress or 0) >= 100 %}bg-success{% elif project.total_tasks > 0 %}bg-primary{% else %}bg-secondary{% endif %} rounded-pill">
+                            {{ project.progress or 0 }}%
+                        </span>
+                    </div>
+                    
+                    <p class="small text-muted mb-3">
+                        <i class="bi bi-calendar-event me-1"></i> Deadline: {{ project.deadline.strftime('%d %b, %Y') }}
+                    </p>
+
+                    <div class="progress mb-3" style="height: 10px; border-radius: 5px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: {{ project.progress or 0 }}%"></div>
+                    </div>
+
+                    <div class="row text-center border-top pt-3">
+                        <div class="col-4 border-end">
+                            <div class="small text-muted">Total</div>
+                            <div class="fw-bold">{{ project.total_tasks }}</div>
+                        </div>
+                        <div class="col-4 border-end">
+                            <div class="small text-muted text-success">Verified</div>
+                            <div class="fw-bold text-success">{{ project.completed_tasks or 0 }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted text-danger">Pending</div>
+                            <div class="fw-bold text-danger">{{ project.pending_tasks or 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

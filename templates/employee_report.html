@@ -1,0 +1,175 @@
+{% extends "layout.html" %}
+{% block title %}Employee Task Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid no-print">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('admin_report_center') }}" class="btn btn-sm btn-outline-secondary mb-2"><i class="bi bi-arrow-left"></i> Back to Report Center</a>
+            <h3 class="fw-bold mb-0">Employee Task Report</h3>
+            <p class="text-muted">Track tasks, progress, and verification status for individual employees.</p>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <form method="POST" action="{{ url_for('employee_report') }}" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Select Employee</label>
+                    <select name="employee_id" class="form-select border-0 bg-light" required>
+                        <option value="">-- Choose Employee --</option>
+                        {% for emp in all_employees %}
+                        <option value="{{ emp.id }}" {% if selected_employee == emp.id %}selected{% endif %}>{{ emp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="bi bi-search me-2"></i>Generate Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if selected_employee and task_data %}
+<div class="container-fluid">
+    <!-- Stats Row -->
+    <div class="row mb-4 no-print">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-success text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold mb-1">Completed Tasks</h6>
+                            <h2 class="fw-bold mb-0">{{ stats.Completed }}</h2>
+                        </div>
+                        <i class="bi bi-check-circle fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-primary text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold mb-1">In-Progress</h6>
+                            <h2 class="fw-bold mb-0">{{ stats['In-Progress'] }}</h2>
+                        </div>
+                        <i class="bi bi-gear-wide-connected fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-secondary text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold mb-1">Pending</h6>
+                            <h2 class="fw-bold mb-0">{{ stats.Pending }}</h2>
+                        </div>
+                        <i class="bi bi-clock-history fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Table -->
+    <div class="card border-0 shadow-sm rounded-4" id="printableArea">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-dark mb-0">Assigned Tasks List</h5>
+            <div class="no-print">
+                <a href="{{ url_for('export_employee_report_csv', employee_id=selected_employee) }}" class="btn btn-success btn-sm rounded-pill px-3 me-2">
+                    <i class="bi bi-download me-2"></i>Export CSV
+                </a>
+                <button onclick="window.print()" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-printer me-2"></i>Print Report
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Project</th>
+                        <th>Task Name</th>
+                        <th>Priority</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Verification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in task_data %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-primary">{{ task.proj_name }}</td>
+                        <td>
+                            <div class="fw-bold">{{ task.title }}</div>
+                            <div class="small text-muted">{{ task.description or '' }}</div>
+                        </td>
+                        <td>
+                            <span class="badge {% if task.priority == 'High' %}bg-danger{% elif task.priority == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %} rounded-pill">
+                                {{ task.priority }}
+                            </span>
+                        </td>
+                        <td class="{% if task.status != 'Completed' and task.deadline and task.deadline < today %}text-danger fw-bold{% endif %}">
+                            {{ task.deadline.strftime('%d/%m/%Y') if task.deadline else 'N/A' }}
+                        </td>
+                        <td>
+                            <span class="badge {% if task.status == 'Completed' %}bg-success{% elif task.status == 'In-Progress' %}bg-primary{% else %}bg-secondary{% endif %} rounded-pill">
+                                {{ task.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if task.verification_status %}
+                                <span class="small {% if task.verification_status == 'Verified' %}text-success{% elif task.verification_status == 'Re-do Required' %}text-danger{% else %}text-muted{% endif %} fw-bold">
+                                    {{ task.verification_status }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% elif selected_employee %}
+<div class="container-fluid mt-4">
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-list-task display-4 text-muted opacity-25 d-block mb-3"></i>
+            <h5 class="text-muted">No tasks found for this employee.</h5>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    @media print {
+        .sidebar, .no-print, .btn-outline-secondary, .alert {
+            display: none !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+        }
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #eee !important;
+        }
+        .container-fluid {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        body {
+            background: white !important;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends "layout.html" %}
+{% block title %}Employee Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .task-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.2s;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .task-card:hover {
+        transform: translateY(-10px);
+    }
+
+    /* Profile Styling */
+    .profile-img-large {
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid #ffffff;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-placeholder {
+        width: 140px;
+        height: 140px;
+        background-color: #eef2ff;
+        color: #6259ca;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 3rem;
+        border: 4px solid #ffffff;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Sidebar To-Do Styling */
+    .todo-container {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        height: 100%;
+    }
+
+    .todo-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .todo-item:last-child {
+        border-bottom: none;
+    }
+
+    .completed-todo {
+        text-decoration: line-through;
+        color: #adb5bd;
+    }
+
+    /* Search Bar Styling */
+    .search-container {
+        background: #fff;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 25px;
+    }
+
+    .search-input {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 8px 15px;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="row mb-4 align-items-center animate__animated animate__fadeInDown">
+                <div class="col-auto">
+                    {% if session.get('profile_pic') %}
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + session['profile_pic']) }}"
+                        class="profile-img-large">
+                    {% else %}
+                    <div class="profile-placeholder">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    <h2 class="fw-bold text-dark mb-1">Welcome back, {{ session['name'] }}!</h2>
+                    <p class="text-muted mb-0">
+                        You have <span class="badge bg-primary rounded-pill">{{ pending_count }}</span> active
+                        assignments today.
+                    </p>
+                </div>
+            </div>
+
+            {% if notice %}
+            <div class="alert alert-primary border-0 shadow-sm rounded-4 mb-4" role="alert">
+                <div class="d-flex align-items-center p-2">
+                    <div class="flex-shrink-0 bg-white rounded-circle p-3 shadow-sm me-3">
+                        <i class="bi bi-megaphone-fill fs-4 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="alert-heading fw-bold mb-1 text-primary">{{ notice.title }}</h6>
+                            <span class="badge bg-white text-muted border small">{{ notice.created_at.strftime('%d %b,
+                                %H:%M') }}</span>
+                        </div>
+                        <p class="mb-0 text-dark" style="font-size: 0.9rem;">{{ notice.message }}</p>
+                        {% if not notice.has_acknowledged %}
+                        <div class="mt-2 text-end">
+                            <a href="{{ url_for('acknowledge_notice', id=notice.id) }}" class="btn btn-sm btn-primary rounded-pill">Acknowledge Notice</a>
+                        </div>
+                        {% else %}
+                        <div class="mt-2 text-end">
+                            <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-checkAll"></i> Acknowledged</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="search-container">
+                <form method="GET" action="{{ url_for('employee_dashboard') }}" class="row g-3">
+                    <div class="col-md-10">
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0 search-input" placeholder="Search tasks by title..." value="{{ search }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold rounded-3">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="row" id="taskGrid">
+                {% for task in tasks %}
+                <div class="col-md-6 mb-4 task-item">
+                    <div
+                        class="card task-card h-100 border-start border-4 {% if task.priority == 'High' %}border-danger{% elif task.priority == 'Medium' %}border-warning{% else %}border-info{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <h5 class="fw-bold mb-0 text-dark task-title">{{ task.title }}</h5>
+                                <span
+                                    class="badge priority-label {% if task.priority == 'High' %}bg-danger{% elif task.priority == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                    {{ task.priority }}
+                                </span>
+                            </div>
+                            <h6 class="text-primary small mb-3 project-name"><i class="bi bi-folder me-1"></i>{{
+                                task.proj_name }}</h6>
+                            <p class="text-muted small">{{ task.description or "No description provided." }}</p>
+
+                            <hr>
+                            {% if task.status != 'Completed' or task.verification_status == 'Re-do Required' %}
+                            <form action="{{ url_for('submit_task', id=task.id) }}" method="POST"
+                                enctype="multipart/form-data">
+                                <textarea name="remark" class="form-control form-control-sm mb-2" rows="2"
+                                    placeholder="Remarks..." required></textarea>
+                                <input type="file" name="task_file" class="form-control form-control-sm mb-2" required>
+                                <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">Submit Task</button>
+                            </form>
+                            {% else %}
+                            <div class="bg-light p-2 rounded small">
+                                <i class="bi bi-check-circle-fill text-success me-1"></i> {{ task.verification_status or
+                                'Submitted' }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="todo-container sticky-top" style="top: 20px;">
+                <h4 class="fw-bold mb-4 text-dark"><i class="bi bi-list-check me-2"></i>Personal To-Do</h4>
+
+                <form action="{{ url_for('add_todo') }}" method="POST" class="mb-4">
+                    <div class="input-group">
+                        <input type="text" name="task_name" class="form-control border-end-0"
+                            placeholder="Add a quick task..." required>
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </form>
+
+                <div class="todo-list">
+                    {% for todo in todos %}
+                    <div class="todo-item animate__animated animate__fadeIn">
+                        <div class="d-flex align-items-center">
+                            <a href="{{ url_for('toggle_todo', id=todo.id) }}" class="text-decoration-none me-3">
+                                {% if todo.is_completed %}
+                                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                                {% else %}
+                                <i class="bi bi-circle fs-5 text-muted"></i>
+                                {% endif %}
+                            </a>
+                            <span class="{% if todo.is_completed %}completed-todo{% endif %}">{{ todo.task_name
+                                }}</span>
+                        </div>
+                        <a href="{{ url_for('delete_todo', id=todo.id) }}" class="text-danger small ms-2"><i
+                                class="bi bi-trash"></i></a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-journal-check fs-2 mb-2 d-block"></i>
+                        <p class="small mb-0">Your list is empty!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

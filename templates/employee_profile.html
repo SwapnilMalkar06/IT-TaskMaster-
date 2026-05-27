@@ -1,0 +1,123 @@
+{% extends "layout.html" %}
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 mb-4 animate__animated animate__fadeIn">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary-subtle rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                            style="width: 80px; height: 80px;">
+                            <i class="bi bi-person-circle text-primary fs-1"></i>
+                        </div>
+                        <h3 class="fw-bold">My Profile</h3>
+                        <p class="text-muted">Update your personal information and photo</p>
+                    </div>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="text-center mb-4">
+                            <div class="position-relative d-inline-block">
+                                {% if user.profile_pic %}
+                                <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}"
+                                    id="imagePreview" class="rounded-circle shadow-sm border"
+                                    style="width: 140px; height: 140px; object-fit: cover;">
+                                {% else %}
+                                <div id="imagePlaceholder" class="bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 140px; height: 140px;">
+                                    <i class="bi bi-person text-primary display-4"></i>
+                                </div>
+                                <img id="imagePreview" class="rounded-circle shadow-sm border d-none"
+                                    style="width: 140px; height: 140px; object-fit: cover;">
+                                {% endif %}
+                                
+                                <label for="profile_pic"
+                                    class="position-absolute bottom-0 end-0 bg-white rounded-circle shadow-sm p-2 border cursor-pointer"
+                                    style="margin-bottom: 5px; cursor: pointer;">
+                                    <i class="bi bi-camera-fill text-primary"></i>
+                                    <input type="file" id="profile_pic" name="profile_pic" class="d-none"
+                                        accept="image/*">
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">Click the camera icon to change photo</small>
+                            </div>
+                        </div>
+
+                        <hr class="my-4 opacity-25">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Full Name</label>
+                            <input type="text" name="name" class="form-control py-2 rounded-3" 
+                                value="{{ user.name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Email Address</label>
+                            <input type="email" name="email" class="form-control py-2 rounded-3" 
+                                value="{{ user.email }}" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small">Designation</label>
+                            <input type="text" name="designation" class="form-control py-2 rounded-3 bg-light" 
+                                value="{{ user.designation }}" readonly>
+                            <small class="text-muted">Designation can only be changed by Admin.</small>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary py-2 fw-bold rounded-3">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Update Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                <div class="card-body p-5">
+                    <h4 class="fw-bold mb-4"><i class="bi bi-shield-lock me-2 text-primary"></i>Security Settings</h4>
+                    <form action="{{ url_for('change_password') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Current Password</label>
+                            <input type="password" name="current_password" class="form-control py-2 rounded-3" placeholder="Enter current password" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small">New Password</label>
+                                <input type="password" name="new_password" class="form-control py-2 rounded-3" placeholder="New password" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold small">Confirm New Password</label>
+                                <input type="password" name="confirm_password" class="form-control py-2 rounded-3" placeholder="Confirm new password" required>
+                            </div>
+                        </div>
+                        <div class="d-grid mt-2">
+                            <button type="submit" class="btn btn-outline-primary py-2 fw-bold rounded-3">
+                                <i class="bi bi-key-fill me-2"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('profile_pic').onchange = function (evt) {
+        const [file] = this.files;
+        if (file) {
+            const preview = document.getElementById('imagePreview');
+            const placeholder = document.getElementById('imagePlaceholder');
+            
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('d-none');
+            if (placeholder) {
+                placeholder.classList.add('d-none');
+            }
+        }
+    }
+</script>
+{% endblock %}

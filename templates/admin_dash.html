@@ -1,0 +1,243 @@
+{% extends "layout.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-purple: #6259ca;
+        --glass-card: rgba(255, 255, 255, 0.95);
+    }
+
+    body {
+        background-color: #f0f2f8;
+    }
+
+    .dashboard-card {
+        border: none;
+        border-radius: 12px;
+        background: var(--glass-card);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+
+    .table thead {
+        background: #f8f9fa;
+    }
+
+    .table-vcenter td {
+        vertical-align: middle;
+    }
+
+    .badge-outline-primary {
+        color: var(--primary-purple);
+        border: 1px solid var(--primary-purple);
+        background: transparent;
+    }
+
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        background-color: var(--primary-purple);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">System Analytics</h3>
+            <p class="text-muted small">Overview of project velocity and team assignments</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('manage_notices') }}" class="btn btn-outline-warning shadow-sm rounded-3">
+                <i class="bi bi-megaphone me-2"></i>Post Notice
+            </a>
+
+            <a href="{{ url_for('manage_tasks') }}" class="btn btn-primary shadow-sm"
+                style="background: var(--primary-purple); border: none;">
+                <i class="bi bi-plus-circle me-2"></i>New Assignment
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="small fw-bold opacity-75">Active Employees</h6>
+                    <h2 class="fw-bold mb-0">{{ active_now if active_now is defined else 0 }}</h2>
+                    <small>Currently Logged In</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="small fw-bold text-muted">Total Employees</h6>
+                    <h2 class="fw-bold mb-0 text-dark">{{ emp_count }}</h2>
+                    <small class="text-muted">Registered Personnel</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="small fw-bold text-muted">Active Projects</h6>
+                    <h2 class="fw-bold mb-0 text-dark">{{ proj_count }}</h2>
+                    <small class="text-muted">In-Progress Ventures</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="small fw-bold text-muted">Active Notices</h6>
+                    <h2 class="fw-bold mb-0 text-dark">{{ notice_count if notice_count is defined else 0 }}</h2>
+                    <small class="text-muted">Broadcast Messages</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-4 col-lg-5">
+            <div class="card dashboard-card">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0 fw-bold">Task Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="taskPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8 col-lg-7">
+            <div class="card dashboard-card">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Current Assignments</h5>
+                    <a href="{{ url_for('manage_tasks') }}" class="btn btn-sm badge-outline-primary px-3">
+                        View Full List
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-vcenter mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Employee</th>
+                                    <th>Task / Project</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_tasks %}
+                                {% for task in recent_tasks %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle me-2">
+                                                {{ task.emp_name[0] }}
+                                            </div>
+                                            <span>{{ task.emp_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ task.task_name }}</div>
+                                        <div class="small text-muted">{{ task.proj_name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                                {% if task.priority == 'High' %}bg-danger
+                                                {% elif task.priority == 'Medium' %}bg-warning text-dark
+                                                {% else %}bg-info{% endif %} px-2">
+                                            {{ task.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold 
+                                                {% if task.status == 'Completed' %}text-success
+                                                {% elif task.status == 'In-Progress' %}text-warning
+                                                {% else %}text-danger{% endif %}">
+                                            {{ task.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        No recent tasks assigned.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Task Distribution Pie Chart
+    const ctx = document.getElementById('taskPieChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Pending', 'In-Progress'],
+            datasets: [{
+                data: [
+                    {{ task_completed if task_completed > 0 else 0.1 }},
+            {{ task_pending if task_pending > 0 else 0.1 }}, 
+                    {{ task_progress if task_progress > 0 else 0.1 }}
+                ],
+        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+        hoverOffset: 4,
+        borderWidth: 0
+            }]
+        },
+        options: {
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    font: { family: 'Inter', size: 12 }
+                }
+            }
+        },
+        cutout: '75%'
+    }
+    });
+</script>
+{% endblock %}

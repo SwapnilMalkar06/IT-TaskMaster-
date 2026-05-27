@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+{% block title %}Manage Employees{% endblock %}
+
+{% block content %}
+<style>
+    .emp-card { border: none; border-radius: 15px; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .table thead { background: #f8f9fa; color: #6259ca; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+    .avatar-placeholder { width: 40px; height: 40px; background: #eef0f7; color: #6259ca; font-weight: bold; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Workforce Management</h3>
+            <p class="text-muted small">Overview and administration of company staff</p>
+        </div>
+        <button class="btn btn-primary px-4 shadow-sm" style="background: #6259ca; border: none;" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+            <i class="bi bi-person-plus me-2"></i>Add New Employee
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <form method="GET" action="{{ url_for('manage_employees') }}" class="input-group shadow-sm rounded-3 overflow-hidden">
+                <input type="text" name="search" class="form-control border-0 px-3" placeholder="Search by name or email..." value="{{ search }}">
+                <button class="btn btn-white border-0 text-muted px-3" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+                {% if search %}
+                <a href="{{ url_for('manage_employees') }}" class="btn btn-white border-0 text-danger px-3" title="Clear Search">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card emp-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Employee Details</th>
+                            <th>Designation</th>
+                            <th>Email Address</th>
+                            <th>Joining Date</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in employees %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-placeholder me-3">{{ emp.name[0] }}</div>
+                                    <div class="fw-bold">{{ emp.name }}</div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-light text-primary border px-3">{{ emp.designation }}</span></td>
+                            <td class="text-muted">{{ emp.email }}</td>
+                            <td class="small">{{ emp.created_at.strftime('%d %b, %Y') }}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-secondary border-0" data-bs-toggle="modal" data-bs-target="#editModal{{ emp.id }}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <a href="{{ url_for('delete_employee', id=emp.id) }}" class="btn btn-sm btn-outline-danger border-0" onclick="return confirm('Are you sure you want to delete this employee?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade" id="editModal{{ emp.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+                                    <div class="modal-header border-0 pb-0">
+                                        <h5 class="fw-bold px-3 pt-3">Edit Employee Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form action="{{ url_for('edit_employee', id=emp.id) }}" method="POST">
+                                        <div class="modal-body p-4">
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Full Name</label>
+                                                <input type="text" name="name" class="form-control" value="{{ emp.name }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Email Address</label>
+                                                <input type="email" name="email" class="form-control" value="{{ emp.email }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Designation</label>
+                                                <input type="text" name="designation" class="form-control" value="{{ emp.designation }}" placeholder="e.g. Senior Manager" required>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-0 pt-0 p-4">
+                                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary px-4" style="background: #6259ca; border: none;">Update Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">No employees found in the system.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold px-3 pt-3">Register New Staff</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('manage_employees') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Full Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="john@company.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Designation</label>
+                        <input type="text" name="designation" class="form-control" placeholder="e.g. Backend Developer" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Login Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Create a password" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 p-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4" style="background: #6259ca; border: none;">Save Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

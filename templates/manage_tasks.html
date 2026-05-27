@@ -1,0 +1,258 @@
+{% extends "layout.html" %}
+{% block title %}Task Assignments{% endblock %}
+
+{% block content %}
+<style>
+    .task-card {
+        border: none;
+        border-radius: 15px;
+        background: #fff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .priority-high {
+        border-left: 5px solid #dc3545;
+    }
+
+    .priority-medium {
+        border-left: 5px solid #ffc107;
+    }
+
+    .priority-low {
+        border-left: 5px solid #0dcaf0;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ url_for('manage_tasks') }}" class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control bg-light border-0" placeholder="Search task title..." value="{{ search }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="project_filter" class="form-select bg-light border-0">
+                        <option value="">All Projects</option>
+                        {% for proj in projects %}
+                        <option value="{{ proj.id }}" {% if proj_filter == proj.id %}selected{% endif %}>{{ proj.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="employee_filter" class="form-select bg-light border-0">
+                        <option value="">All Employees</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp_filter == emp.id %}selected{% endif %}>{{ emp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" style="background: #6259ca; border: none;">Apply</button>
+                    {% if search or proj_filter or emp_filter %}
+                    <a href="{{ url_for('manage_tasks') }}" class="btn btn-outline-danger border-0" title="Clear All">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Task Dispatcher</h3>
+            <p class="text-muted small">Distribute workloads and track individual performance</p>
+        </div>
+        <button class="btn btn-primary px-4 shadow-sm" style="background: #6259ca; border: none;" data-bs-toggle="modal"
+            data-bs-target="#addTaskModal">
+            <i class="bi bi-plus-square me-2"></i>Assign New Task
+        </button>
+    </div>
+
+    <div class="card task-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small">
+                        <tr>
+                            <th class="ps-4">Task Details</th>
+                            <th>Assigned To</th>
+                            <th>Project</th>
+                            <th>Deadline</th> 
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr class="priority-{{ task.priority.lower() }}">
+                            <td class="ps-4">
+                                <div class="fw-bold">{{ task.title }}</div>
+                                <div class="small text-muted">{{ task.description[:40] }}...</div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light text-primary rounded-circle p-1 me-2"
+                                        style="width:25px; height:25px; font-size:10px; text-align:center;">{{
+                                        task.emp_name[0] }}</div>
+                                    <span class="small">{{ task.emp_name }}</span>
+                                </div>
+                            </td>
+                            <td class="small">{{ task.proj_name }}</td>
+                            <td class="small fw-bold">
+                                <i class="bi bi-calendar-event me-1 text-primary"></i>
+                                {{ task.deadline.strftime('%d %b, %Y') if task.deadline else 'Not Set' }}
+                            </td>
+                            <td><span
+                                    class="badge {% if task.priority == 'High' %}bg-danger{% elif task.priority == 'Medium' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{
+                                    task.priority }}</span></td>
+                            <td
+                                class="fw-bold {% if task.status == 'Completed' %}text-success{% elif task.status == 'In-Progress' %}text-warning{% else %}text-danger{% endif %}">
+                                {{ task.status }}</td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary border-0" data-bs-toggle="modal" data-bs-target="#editTaskModal{{ task.id }}">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <a href="{{ url_for('delete_task', id=task.id) }}"
+                                        class="btn btn-sm btn-outline-danger border-0"
+                                        onclick="return confirm('Remove this assignment?')"><i class="bi bi-trash"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade" id="editTaskModal{{ task.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+                                    <div class="modal-header border-0 pb-0">
+                                        <h5 class="fw-bold px-3 pt-3 text-primary">Modify Assignment</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form action="{{ url_for('edit_task', id=task.id) }}" method="POST">
+                                        <div class="modal-body p-4">
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Update Project</label>
+                                                <select name="project_id" class="form-select" required>
+                                                    {% for proj in projects %}
+                                                    <option value="{{ proj.id }}" {% if proj.id == task.project_id %}selected{% endif %}>{{ proj.title }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Re-assign Employee</label>
+                                                <select name="user_id" class="form-select" required>
+                                                    {% for emp in employees %}
+                                                    <option value="{{ emp.id }}" {% if emp.id == task.assigned_to_user_id %}selected{% endif %}>{{ emp.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Task Title</label>
+                                                <input type="text" name="title" class="form-control" value="{{ task.title }}" required>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label small fw-bold">Priority</label>
+                                                    <select name="priority" class="form-select">
+                                                        <option value="High" {% if task.priority == 'High' %}selected{% endif %}>High</option>
+                                                        <option value="Medium" {% if task.priority == 'Medium' %}selected{% endif %}>Medium</option>
+                                                        <option value="Low" {% if task.priority == 'Low' %}selected{% endif %}>Low</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label small fw-bold">Status</label>
+                                                    <select name="status" class="form-select">
+                                                        <option value="Pending" {% if task.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                                        <option value="In-Progress" {% if task.status == 'In-Progress' %}selected{% endif %}>In-Progress</option>
+                                                        <option value="Completed" {% if task.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Update Deadline</label>
+                                                <input type="date" name="deadline" class="form-control" value="{{ task.deadline }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Updated Description</label>
+                                                <textarea name="description" class="form-control" rows="3">{{ task.description }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-0 p-4 pt-0">
+                                            <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" style="background: #6259ca; border: none;">Save Changes & Notify Employee</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">No active assignments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold px-3 pt-3">New Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('manage_tasks') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Select Project</label>
+                        <select name="project_id" class="form-select" required>
+                            {% for proj in projects %}
+                            <option value="{{ proj.id }}">{{ proj.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Assign To Employee</label>
+                        <select name="user_id" class="form-select" required>
+                            {% for emp in employees %}
+                            <option value="{{ emp.id }}">{{ emp.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Task Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Design Login Page"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Priority</label>
+                        <select name="priority" class="form-select">
+                            <option value="High">High</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Set Deadline</label>
+                        <input type="date" name="deadline" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Task Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="submit" class="btn btn-primary w-100"
+                        style="background: #6259ca; border: none;">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
