@@ -32,8 +32,8 @@ def allowed_file(filename):
 # Database Configuration
 db_config = {
     'host': 'localhost',
-    'user': 'root',
-    'password': '852456',
+    'user': '',
+    'password': '',
     'database': 'taskmaster_db'
 }
 
